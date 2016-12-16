@@ -1,0 +1,14 @@
+../input/venus_dwn_proposal/proposal_1.txt
+../input/venus_dwn_proposal/proposal_2.txt
+../input/venus_dwn_proposal/proposal_3.txt
+../input/venus_dwn_proposal/proposal_4.txt
+../input/venus_dwn_proposal/proposal_5.txt
+../input/venus_dwn_proposal/proposal_6.txt
+../input/venus_dwn_proposal/proposal_7.txt
+../input/venus_dwn_proposal/proposal_8.txt
+../input/venus_dwn_proposal/proposal_9.txt
+../input/venus_dwn_proposal/proposal_10.txt
+../input/venus_dwn_proposal/proposal_11.txt
+../input/venus_dwn_proposal/proposal_12.txt
+../input/venus_dwn_proposal/proposal_13.txt
+../input/venus_dwn_proposal/proposal_14.txt

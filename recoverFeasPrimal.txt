@@ -1,0 +1,258 @@
+int dualSys::recoverFeasPrimal()
+{
+ //std::cout<<"RECOVERFEASPRIMAL: PRIMALFRAC";
+
+ std::ofstream primalFracFileOP("../primalFracFileQN.txt");
+ std::ifstream primalFracFileIP("../primalFracFileCOMMON.txt");
+
+ for (std::vector<double>::iterator iPrimalFrac = primalFrac_.begin(); iPrimalFrac != primalFrac_.end(); ++iPrimalFrac) {
+  primalFracFileOP<<*iPrimalFrac<<std::endl;
+  primalFracFileIP>>*iPrimalFrac;
+  //std::cout<<" "<<*iPrimalFrac;
+ }
+
+ primalFracFileOP.close();
+ primalFracFileIP.close();
+ //std::cout<<std::endl;
+
+ std::vector<std::vector<double> > cliqMargSum(nCliq_);
+
+ for (int iCliq = 0; iCliq != nCliq_; ++iCliq) {
+  int sizCliq = clique_[iCliq].sizCliq_;
+  int subDualSiz = clique_[iCliq].getDualSiz();
+  std::vector<int> nodeOffset = clique_[iCliq].getNodeOffset();
+  std::vector<short> nLabel = clique_[iCliq].getNodeLabel();
+  int nCliqLab = clique_[iCliq].nCliqLab_;
+
+
+  std::vector<double> primalCliqFrac = clique_[iCliq].getPrimalCliqFrac();
+
+  std::string fileNameOP = "../primalCliq" + std::to_string(iCliq) + "QN.txt";
+  std::string fileNameIP = "../primalCliq" + std::to_string(iCliq) + "COMMON.txt";
+
+  std::ofstream primalCliqFracFileOP(fileNameOP.c_str());
+  std::ifstream primalCliqFracFileIP(fileNameIP.c_str());
+
+  //if (!ipFile) {
+  // return -1;
+  //}
+
+  double debugAcc = 0.0;
+
+  //std::cout<<"RECOVERFEASPRIMAL: CLIQUE "<<iCliq<<"PRIMALCLIQFRAC";
+  //std::accumulate(primalCliqFrac.begin(), primalCliqFrac.end(), debugAcc);
+  for (std::vector<double>::iterator debugIter = primalCliqFrac.begin(); debugIter != primalCliqFrac.end(); ++debugIter) {
+   debugAcc += *debugIter;
+   primalCliqFracFileOP<<*debugIter<<std::endl;
+   primalCliqFracFileIP>>*debugIter;
+   //std::cout<<" "<<*debugIter;
+  }
+
+  primalCliqFracFileOP.close();
+  primalCliqFracFileIP.close();
+  //std::cout<<" ACCVALUE "<<debugAcc<<std::endl;
+
+  std::vector<double> curMargSum(subDualSiz, 0);
+
+  for (int iCliqLab = 0; iCliqLab != nCliqLab; ++iCliqLab) {
+   std::vector<short> cliqLab;
+   double labPull = nCliqLab;
+
+   for (int k = 0; k != sizCliq; ++k) {
+    labPull /= nLabel[k];
+
+    int labPullTwo = ceil((iCliqLab+1)/labPull);
+
+    if (labPullTwo % nLabel[k] == 0) {
+     cliqLab.push_back(nLabel[k] - 1);
+    }
+    else {
+     cliqLab.push_back((labPullTwo % nLabel[k]) - 1);
+    }
+   }
+
+   for (int k = 0; k != sizCliq; ++k) {
+    for (int l = 0; l != nLabel[k]; ++l) {
+     if (cliqLab[k] == l) {
+      curMargSum[nodeOffset[k] + l] += primalCliqFrac[iCliqLab];
+     }
+    }
+   }
+  } //for iCliqLab
+  cliqMargSum[iCliq] = curMargSum;
+ } //for iCliq
+
+ for (int iNode = 0; iNode != nNode_; ++iNode) {
+  int nLabel = nLabel_[iNode];
+  for (int j = 0; j != nLabel; ++j) {
+   double cliqSum = 0;
+   double cliqDiv = 0;
+   for (std::vector<int>::iterator k = cliqPerNode_[iNode].begin(); k != cliqPerNode_[iNode].end(); ++k) {
+    int nodeInd = myUtils::findNodeIndex(clique_[*k].memNode_, iNode);
+
+    std::vector<short> cliqNodeLabel = clique_[*k].getNodeLabel();
+
+    double margNorm = 1;
+    for (int l = 0; l != clique_[*k].sizCliq_; ++l) {
+     if (l != nodeInd) {
+      margNorm *= cliqNodeLabel[l];
+     }
+    }
+    margNorm = 1/margNorm;
+
+    cliqSum += margNorm*cliqMargSum[*k][clique_[*k].getNodeOffset()[nodeInd] + j];
+    cliqDiv += margNorm;
+   }
+   primalFeas_[unaryOffset_[iNode] + j] = (1.0/(1.0 + cliqDiv))*(primalFrac_[unaryOffset_[iNode] + j] + cliqSum);
+  }
+ } //for iNode
+
+ double lambd = 0.0;
+
+ for (int iCliq = 0; iCliq != nCliq_; ++iCliq) {
+  int sizCliq = clique_[iCliq].sizCliq_;
+  std::vector<int> nodeOffset = clique_[iCliq].getNodeOffset();
+  std::vector<short> nLabel = clique_[iCliq].getNodeLabel();
+  int nCliqLab = clique_[iCliq].nCliqLab_;
+
+  std::vector<double> primalCliqFeas(nCliqLab);
+  std::vector<double> primalCliqFrac = clique_[iCliq].getPrimalCliqFrac();
+
+  //std::cout<<"RECOVERFEASPRIMAL: CLIQUE "<<iCliq;
+
+  for (int j = 0; j != nCliqLab; ++j) {
+
+   std::vector<short> cliqLab;
+   double labPull = nCliqLab;
+
+   for (int k = 0; k != sizCliq; ++k) {
+    labPull /= nLabel[k];
+
+    int labPullTwo = ceil((j+1)/labPull);
+
+    if (labPullTwo % nLabel[k] == 0) {
+     cliqLab.push_back(nLabel[k] - 1);
+    }
+    else {
+     cliqLab.push_back((labPullTwo % nLabel[k]) - 1);
+    }
+   }
+
+   double nodeSum = 0.0;
+   for (int k = 0; k != sizCliq; ++k) {
+
+    double margNorm = 1;
+    for (int l = 0; l != sizCliq; ++l) {
+     if (l != k) {
+      margNorm *= nLabel[l];
+     }
+    }
+    margNorm = 1/margNorm;
+
+    nodeSum += margNorm*(cliqMargSum[iCliq][nodeOffset[k] + cliqLab[k]] - primalFeas_[unaryOffset_[clique_[iCliq].memNode_[k]] + cliqLab[k]]);
+   }
+
+   primalCliqFeas[j] = primalCliqFrac[j] - nodeSum;
+
+   double denTerm = primalCliqFeas[j] - (1.0/nCliqLab);
+
+   if (primalCliqFeas[j] < 0) {
+    if (lambd < primalCliqFeas[j]/denTerm) {
+     lambd = primalCliqFeas[j]/denTerm;
+    }
+   }
+   else if (primalCliqFeas[j] > 1) {
+    if (lambd < (primalCliqFeas[j] - 1.0)/denTerm) {
+     lambd = (primalCliqFeas[j] - 1.0)/denTerm;
+    }
+   }
+  } //for j
+
+  //std::cout<<std::endl;
+
+  clique_[iCliq].setPrimalCliqFeas(primalCliqFeas);
+ } //for iCliq
+
+ std::ofstream primalFeasFile("primalFeasFile.txt");
+
+ for (int i = 0; i != nNode_; ++i) {
+  int nLabel = nLabel_[i];
+  double nodeLambdTerm = lambd/nLabel;
+
+  for (int j = 0; j != nLabel; ++j) {
+   primalFeas_[unaryOffset_[i] + j] = (1.0 - lambd)*primalFeas_[unaryOffset_[i] + j] + nodeLambdTerm;
+
+   primalFeasFile<<primalFeas_[unaryOffset_[i] + j]<<std::endl;
+  }
+ } //for i
+
+ primalFeasFile.close();
+
+ for (int iCliq = 0; iCliq != nCliq_; ++iCliq) {
+  int nCliqLab = clique_[iCliq].nCliqLab_;
+
+  double cliqLambdTerm = lambd/nCliqLab;
+
+  std::vector<double> primalCliqFeas = clique_[iCliq].getPrimalCliqFeas();
+
+  std::vector<double> primalCliqFrac = clique_[iCliq].getPrimalCliqFrac();
+
+  std::string primalCliqFeasFileName = "primalCliqFeas" + std::to_string(iCliq) + ".txt";
+  std::ofstream primalCliqFeasFile(primalCliqFeasFileName);
+
+  for (int iCliqLab = 0; iCliqLab != nCliqLab; ++iCliqLab) {
+   primalCliqFeas[iCliqLab] = (1.0 - lambd)*primalCliqFeas[iCliqLab] + cliqLambdTerm;
+
+   primalCliqFeasFile<<"primalCliqFeas "<<primalCliqFeas[iCliqLab]<<" primalCliqFrac "<<primalCliqFrac[iCliqLab]<<std::endl;
+  } //for iCliqLab
+
+  primalCliqFeasFile.close();
+
+  clique_[iCliq].setPrimalCliqFeas(primalCliqFeas);
+ } //for iCliq
+
+ for (int iCliq = 0; iCliq != nCliq_; ++iCliq) {
+  std::vector<double> primalCliqFeas = clique_[iCliq].getPrimalCliqFeas();
+
+//  std::cout<<"clique "<<iCliq;
+
+  int nCliqLab = clique_[iCliq].nCliqLab_;
+  std::vector<int> memNode = clique_[iCliq].getMemNode();
+  //std::vector<double> dualVar = curFactor->getDualVar(); ####
+  std::vector<short> label = clique_[iCliq].getNodeLabel();
+  std::vector<int> stride = clique_[iCliq].getStride();
+
+  std::vector<std::vector<double> > nodeLabMarg(memNode.size());
+
+  for (int iNode = 0; iNode != memNode.size(); ++iNode) {
+   nodeLabMarg[iNode].resize(nLabel_[memNode[iNode]]);
+  }
+
+  for (int iCliqLab = 0; iCliqLab != nCliqLab; ++iCliqLab) {
+//   std::cout<<" "<<primalCliqFeas[iCliqLab];
+
+   for (int iNode = 0; iNode != memNode.size(); ++iNode) {
+
+    int varAssign = static_cast<int>(floor(iCliqLab/stride[iNode])) % label[iNode];
+
+    nodeLabMarg[iNode][varAssign] += primalCliqFeas[iCliqLab];
+   } //for iNode
+  } //for iCliqLab
+
+//  std::cout<<std::endl;
+
+  for (int iNode = 0; iNode != memNode.size(); ++iNode) {
+   std::cout<<"Node "<<memNode[iNode]<<std::endl;
+   for (int iLabel = 0; iLabel != nLabel_[memNode[iNode]]; ++iLabel) {
+    //if (std::abs(primalFeas_[unaryOffset_[memNode[iNode]] + iLabel] - nodeLabMarg[iNode][iLabel]) > pow(10,-3)) {
+     std::cout<<"Index "<<unaryOffset_[memNode[iNode]] + iLabel<<"primalFrac "<<primalFrac_[unaryOffset_[memNode[iNode]] + iLabel]<<"primalFeas "<<primalFeas_[unaryOffset_[memNode[iNode]] + iLabel]<<" nodeLabMarg "<<nodeLabMarg[iNode][iLabel]<<std::endl;
+    //}
+   } //for iLabel
+  } //for iNode
+ } //for iCliq
+
+ std::cout<<std::flush;
+
+ return 0;
+}
+
