@@ -18,7 +18,7 @@
 #include <opengm/functions/pottsg.hxx>
 #include "opengm/functions/truncated_absolute_difference.hxx"
 #include "opengm/functions/truncated_squared_difference.hxx"
-#include "../newton_flex_qt/variousEnergies.hpp"
+#include "variousEnergies.hpp"
 
 int dwnSampPix(int, int, int &, int);
 int populateNodeCliqLists(int, int, int, int, std::vector<std::vector<int> > &);
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
    }
   }
   else if (line.find("Anneal") != std::string::npos) {
-   std::string annealFlag;   
+   std::string annealFlag;
 
    sin>>annealFlag;
 
