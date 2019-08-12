@@ -129,7 +129,6 @@ int popStereoSmoothEnergies(int nRow, int nCol, const std::vector<double> &lImg,
    std::vector<int> curVec;
 
    int pixPos = y*nCol + x;
-   //std::cout<<"pixel position "<<pixPos<<" ";
 
    if (((y == 0) || (y == nRow-1)) && (x != 0) && (x != nCol-1)) {
     curVec.push_back(pixPos-1);
@@ -201,9 +200,6 @@ int popStereoSmoothEnergies(int nRow, int nCol, const std::vector<double> &lImg,
       sparseEnergy[energyInd] = -1*Fx;
       ++sparseCnt;
      }
-//     else {
-//      cliqEnergy.push_back(-1*kappa);
-//     }
 
      ++energyInd;
     }
@@ -229,7 +225,6 @@ std::vector<double> popDenoiseUEnergy(int nLabel, double pixVal) {
  std::vector<double> uEnergy;
 
  for (int i = 0; i != nLabel; ++i) {
- //uEnergy.push_back(-1*pow(j-pixVal, 2));
   uEnergy.push_back(-1*std::abs(i-pixVal));
  }
 
@@ -240,7 +235,6 @@ std::vector<double> popDenRelUEnergy(int nLabel) {
  std::vector<double> uEnergy;
 
  for (int i = -1*(nLabel/2); i < nLabel/2; ++i) {
- //uEnergy.push_back(-1*pow(j-pixVal, 2));
   uEnergy.push_back(-1*std::abs(i));
  }
 
@@ -403,10 +397,8 @@ std::vector<double> popSparseDenoiseCEnergy(int nLabel) {
     double grad = (k-i)/2.0;
 
     if ((std::abs(Fx) <= kappa) && (std::abs(grad) <= alphaMax)) {
-     //cEnergy.push_back(-1*std::abs(Fx));
      cEnergy.push_back(0);
      ++sparseCnt;
-     //std::cout<<"pattern is "<<i<<" "<<j<<" "<<k<<std::endl;
     }
     else {
      cEnergy.push_back(-1*kappa);
@@ -438,7 +430,6 @@ int popSparseDenoiseCEnergy(int nLabel, double &sparseKappa, std::map<int,double
     if ((std::abs(Fx) <= sparseKappa) && (std::abs(grad) <= alphaMax)) {
      sparseEnergies[sparseInd] = 0;
      ++sparseCnt;
-     //std::cout<<"pattern is "<<i<<" "<<j<<" "<<k<<std::endl;
     }
    }
   }
@@ -603,21 +594,10 @@ std::vector<double> popUniformCEnergy(std::vector<int> cliqNode, std::vector<sho
 std::vector<double> popStrongGraphMatchUEnergy(int nodeInd, int nLabel) {
  std::vector<double> uEnergy(nLabel);
 
- //int sqrtLab = static_cast<int>(sqrt(nLabel));
-
- //int nodeLab = nodeInd % sqrtLab;
-
  std::cout<<"uEnergy for node "<<nodeInd<<":";
 
  for (int iLabel = 0; iLabel != nLabel; ++iLabel) {
-  //int curLab = iLabel % sqrtLab;
-
-  //uEnergy[iLabel] = -1*std::abs(static_cast<double>(nodeLab-curLab)/sqrtLab);
   uEnergy[iLabel] = -1*std::abs(static_cast<double>(iLabel-nodeInd)/nLabel);
-  //uEnergy[iLabel] = 0;
-  //uEnergy[iLabel] = -10*std::abs(static_cast<double>(iLabel-nodeInd));
-
-  std::cout<<" "<<uEnergy[iLabel];
  }
 
  std::cout<<std::endl;
@@ -673,13 +653,9 @@ std::vector<std::vector<double> > popSiftMatchUEnergy() {
 
  int nLabel = siftDescTwo.size();
 
- //int sqrtLab = static_cast<int>(sqrt(nLabel));
-
  for (std::size_t nodeInd = 0; nodeInd != siftDescOne.size(); ++nodeInd) {
 
   std::vector<double> curUEnergy(nLabel);
-
-  std::cout<<"uEnergy for node "<<nodeInd<<":";
 
   double normVal = 0;
 
@@ -701,8 +677,6 @@ std::vector<std::vector<double> > popSiftMatchUEnergy() {
    curUEnergy[iLabel] /= -1*normVal;
   }
 
-  //std::cout<<std::endl;
-
   uEnergyVec.push_back(curUEnergy);
  }
 
@@ -718,8 +692,6 @@ int popSynth2DGraphMatchCEnergy(std::string fileNamePrefix, std::vector<short> n
  std::string nnDataFile = "/home/hari/softwares/ann_1.1.2/ann_1.1.2/bin/" + fileNamePrefix + "nnop.txt";
 
  std::cout<<"Nearest neighbours file "<<nnDataFile<<std::endl;
-
- //std::string nnDataFile = "/home/hari/Dropbox/input/" + fileNamePrefix + "nnop.txt";
 
  std::ifstream ipFile(nnDataFile.c_str());
 
@@ -740,9 +712,6 @@ int popSynth2DGraphMatchCEnergy(std::string fileNamePrefix, std::vector<short> n
   std::stringstream curStream(curLine);
 
   std::vector<double> curSinVec;
-  //curStream>>curSinVec[0];
-  //curStream>>curSinVec[1];
-  //curStream>>curSinVec[2];
 
   double curVal;
 
@@ -873,13 +842,8 @@ int popSynth2DGraphMatchCEnergy(std::string fileNamePrefix, std::vector<short> n
    double maxEnergy = A*exp(-1*gamma*l2Vec[0]); //exp(-1*gamma*l2Vec[0]);
    double minEnergy = maxEnergy;
 
-   //std::cout<<"Clique energies";
-
    for (std::set<int>::iterator iCur = curIndices.begin(); iCur != curIndices.end(); ++iCur) {
     double curEnergyVal = A*exp(-1*gamma*l2Vec[locInd]);
-    //double curEnergyVal = A*exp(-1*l2Vec[locInd]);
-
-    //std::cout<<" "<<curEnergyVal;
 
     curEnergies[*iCur] = curEnergyVal*energyScale;
 
@@ -891,22 +855,8 @@ int popSynth2DGraphMatchCEnergy(std::string fileNamePrefix, std::vector<short> n
      minEnergy = curEnergyVal;
     }
 
-    //curEnergies[*iCur] = sparseKappa*exp(-1*l2Vec[locInd]);
     ++locInd;
    }
-
-   //std::cout<<std::endl;
-
-#if 0
-   int totLab = tgtTuple.size();
-   for (int iLab = 0; iLab != totLab; ++iLab) {
-    if ((curIndices.find(iLab) == curIndices.end()) && (curIndices.size() != 40000)) {
-     curIndices.insert(iLab);
-     curEnergies[iLab] = minEnergy;
-    }
-   }
-   sparseKappa.push_back(minEnergy/2);
-#endif
 
    sparseKappa.push_back(minEnergy*energyScale);
 
@@ -1019,8 +969,6 @@ int popHighStereoEnergies(int nRow, int nCol, int nLabel, const std::vector<doub
 
  int cliqInd = 0;
 
- //std::cout<<"Sparse energies are ";
-
  int numCliq = cliqNodes.size();
 
  sparseKappa.resize(numCliq);
@@ -1058,7 +1006,6 @@ int popHighStereoEnergies(int nRow, int nCol, int nLabel, const std::vector<doub
 
      if ((std::abs(Fx) <= kappa) && (std::abs(depGrad) <= alphaMax)) {
       sparseEnergies[cliqInd][energyInd] = -1*energyWt*std::abs(Fx);
-      //std::cout<<sparseEnergy[energyInd]<<" ";
       ++sparseCnt;
       if (std::abs(Fx) <= pow(10,-6)) {
        ++zeroCnt;
@@ -1076,9 +1023,6 @@ int popHighStereoEnergies(int nRow, int nCol, int nLabel, const std::vector<doub
   if (sparseCnt < minSparseSiz) {
    minSparseSiz = sparseCnt;
   }
-
-  //std::cout<<"popHighStereoEnergies: clique index "<<cliqInd<<" max. sparse size "<<sparseCnt<<std::endl;
-  //std::cout<<std::flush;
 
   ++cliqInd;
  }

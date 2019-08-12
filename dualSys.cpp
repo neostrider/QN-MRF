@@ -104,12 +104,6 @@ int dualSys::setNumRowCol(int nRow, int nCol) { //only for grids
 
 int dualSys::prepareDualSys(int cliqRowSiz, int cliqColSiz, std::vector<std::vector<int> > predefCliqChains, std::vector<uint_fast8_t> predefHorVerFlag) {
 
-// int cliqOff = 0; ??????
-// for (int i = 0; i != nCliq_; ++i) {
-//  clique_[i].setCliqOffset(cliqOff);
-//  cliqOff += clique_[i].getDualVar().size();
-//}
-
  pdGap_ = 1;
  pdInitFlag_ = true;
  smallGapIterCnt_ = 0;
@@ -413,8 +407,6 @@ int dualSys::prepareDualSys(int cliqRowSiz, int cliqColSiz, std::vector<std::vec
     int prevCliqInd = *(iCliq-1);
     int nxtCliqInd = *(iCliq+1);
 
-//    std::cout<<"clique_ total size "<<clique_.size()<<" prevCliqInd "<<prevCliqInd<<" nxtCliqInd "<<nxtCliqInd<<std::endl;
-
     std::vector<int> prevNodeSet = clique_[prevCliqInd].memNode_;
     std::vector<int> nxtNodeSet = clique_[nxtCliqInd].memNode_;
 
@@ -498,7 +490,6 @@ int dualSys::prepareDualSys(int cliqRowSiz, int cliqColSiz, std::vector<std::vec
   int curOffset = 0;
 
   for (std::vector<int>::iterator nodeIter = nodesInChain.begin(); nodeIter != nodesInChain.end(); ++nodeIter) {
-   //std::cout<<"prepareDualSys: curOffset "<<curOffset<<std::endl;
    nodeOffset.push_back(curOffset);
    curOffset += nLabel_[*nodeIter];
    memLabel.push_back(nLabel_[*nodeIter]);
@@ -509,7 +500,6 @@ int dualSys::prepareDualSys(int cliqRowSiz, int cliqColSiz, std::vector<std::vec
   subProb_.back().setNodeLabel(memLabel);
   subProb_.back().setNodeOffset(nodeOffset);
 
-  //std::cout<<"prepareDualSys: chainCnt "<<chainCnt<<" curChain size "<<curChain.size()<<std::endl;
   ++chainCnt;
  } //for iChain
 
@@ -531,15 +521,10 @@ int dualSys::prepareDualSys(int cliqRowSiz, int cliqColSiz, std::vector<std::vec
   nDualVar_ += nLabel_[iNode];
  }
 
-// std::cout<<"non-zero reserved size for hessian "<<elemCnt<<std::endl;
-
-// std::cout<<"non-zero terms "<<nonZeroTerms<<std::endl;
-
  cliqChains.clear();
 
  std::cout<<"prepareDualSys: no. of dual variables "<<nDualVar_<<std::endl;
  std::cout<<"hessian size "<<nDualVar_*nDualVar_<<std::endl;
-// std::cout<<"maxCliqSiz_"<<maxCliqSiz_<<std::endl;
 
  primalMax_.resize(nNode_);
  dualVar_.resize(nDualVar_);
@@ -547,9 +532,6 @@ int dualSys::prepareDualSys(int cliqRowSiz, int cliqColSiz, std::vector<std::vec
  newtonStep_.resize(nDualVar_);
 
  std::cout<<"prepareDualSys: nSubProb_"<<nSubProb_<<std::endl;
-
-// assignPrimalVars("../openGMTest/tsu-gm.h5op.txt");
-// std::cout<<"unary + clique integral energy "<<compIntPrimalEnergy()<<" folded energy "<<compIntPrimalEnergyFolded()<<std::endl;
 
  distributeDualVars();
 
@@ -570,24 +552,11 @@ int dualSys::popGradEnergySP() {
 
  curEnergy_ = 0;
 
- //std::cout<<"popGradEnergySP: sub problem index ";
-
-#if 1
-// #pragma omp parallel for
- for (std::size_t iSubProb = 0; iSubProb < nSubProb_; ++iSubProb) {
-  //std::cout<<iSubProb<<" ";
-  //std::cout<<std::flush;
+ for (std::size_t iSubProb = 0; iSubProb < nSubProb_; ++iSubProb) { //parallelization w.r.t. sub-problems is future work.
 
   std::vector<int> memNodes = subProb_[iSubProb].getMemNode();
   int subDualSiz = subProb_[iSubProb].getDualSiz();
   double subProbSign = subProb_[iSubProb].getGradSign();
-
-  //std::vector<double> nodeMarg(subDualSiz);
-  //cliqChainSP(subProb_[iSubProb], uEnergy_, unaryOffset_, f1Den, nodeMarg);
-  //for (std::vector<double>::iterator nodeMargIter = nodeMarg.begin(); nodeMargIter != nodeMarg.end(); ++nodeMargIter) {
-  // *nodeMargIter /= f1Den;
-  //}
-  //double energy = (1/tau_)*log(f1Den);
 
   std::vector<int> nodeOffset = subProb_[iSubProb].getNodeOffset();
   Eigen::VectorXd subVar(subDualSiz);
@@ -637,29 +606,16 @@ int dualSys::popGradEnergySP() {
    } // for labelJ
   } //for iNode
  } //for iSubProb
-#endif
-
- //std::cout<<std::endl;
 
  int gradMaxInd = myUtils::argmaxAbs(gradient_, 0, nDualVar_);
  gradMax_ = std::abs(gradient_[gradMaxInd]);
 
  gradNorm_ = gradient_.norm();
 
-// std::cout<<"POPGRADENERGY: DEBUG PRIMALFRAC";
-
-// for (std::vector<double>::iterator iPrimalFrac = primalFrac_.begin(); iPrimalFrac != primalFrac_.end(); ++iPrimalFrac) {
-//  std::cout<<" "<<*iPrimalFrac;
-// }
-
-// std::cout<<std::endl;
-
  if (isnan(curEnergy_)) {
   std::cout<<"ENERGY INDEED NAN!"<<std::endl;
   return -1;
  }
-
- //debugEigenVec(gradient_);
 
  return 0;
 }
@@ -678,9 +634,7 @@ int dualSys::popGradEnergyFistaSP() {
  double energy = 0;
  double energyDual = 0;
 
-#if 1
-// #pragma omp parallel for
- for (std::size_t iSubProb = 0; iSubProb < nSubProb_; ++iSubProb) {
+ for (std::size_t iSubProb = 0; iSubProb < nSubProb_; ++iSubProb) { //parallelization w.r.t. sub-problems is future work.
   std::vector<int> nodeOffset = subProb_[iSubProb].getNodeOffset();
   std::vector<int> memNodes = subProb_[iSubProb].getMemNode();
   int subDualSiz = subProb_[iSubProb].getDualSiz();
@@ -688,24 +642,8 @@ int dualSys::popGradEnergyFistaSP() {
 
   std::vector<double> nodeMargDual(subDualSiz);
   std::vector<double> nodeMargMom(subDualSiz);
-  //std::vector<double> nodeMargDualDebug(subDualSiz);
-  //std::vector<double> nodeMargMomDebug(subDualSiz);
-
   std::vector<std::vector<double> > cliqMarg;
 
-#if 0
-  if (((-1 == annealIval_) || (tauMax_ == tau_)) && (cntIter_ % cntExitCond_ == 0)) {
-   cliqChainSPNumericalFista(subProb_[iSubProb], uEnergy_, unaryOffset_, tau_, energy, nodeMargDual, nodeMargMom, cliqMarg);
-   int cliqCnt = 0;
-
-   std::vector<int> cliqIndex = subProb_[iSubProb].getCliqIndex(); 
-
-   for (std::vector<int>::iterator cliqIter = cliqIndex.begin(); cliqIter != cliqIndex.end(); ++cliqIter) {
-    clique_[*cliqIter].setPrimalCliqFrac(cliqMarg[cliqCnt]);
-    ++cliqCnt;
-   }
-  }
-#endif
   if ((-1 == annealIval_) || (tauMax_ == tau_)) {
    cliqChainSPNumSparseFista(subProb_[iSubProb], uEnergy_, unaryOffset_, tau_, energyDual, energy, nodeMargDual, nodeMargMom);
   }
@@ -717,7 +655,6 @@ int dualSys::popGradEnergyFistaSP() {
 
   dualEnergy_ += energyDual;
 
-#if 1
   for (std::vector<int>::const_iterator iNode = memNodes.begin(); iNode != memNodes.end(); ++iNode) {
    int nodePos = std::distance<std::vector<int>::const_iterator>(memNodes.begin(), iNode);
    for (int iLabel = 0; iLabel != nLabel_[*iNode]; ++iLabel) {
@@ -734,18 +671,13 @@ int dualSys::popGradEnergyFistaSP() {
     }
    } // for labelJ
   } //for iNode
-#endif
 
-  //debugEigenVec(gradient_);
  } //for iSubProb
-#endif
 
  if (isnan(curEnergy_)) {
   std::cout<<"ENERGY INDEED NAN!"<<std::endl;
   return -1;
  }
-
- //debugEigenVec(gradient_);
 
  return 0;
 }
